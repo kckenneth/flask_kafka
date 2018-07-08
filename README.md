@@ -1,7 +1,7 @@
 |Title |  Kafka deployment in Web-based Mobile Game |
 |-----------|----------------------------------|
 |Author | Kenneth Chen |
-|Utility | Kafka, Spark, HDFS, Droplet, Docker, LA |
+|Utility | Flask, Kafka, Spark, HDFS, Droplet, Docker, LA |
 |Date | 6/29/2018 |
 
 __Procedure__  
