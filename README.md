@@ -52,6 +52,7 @@ docker run -it --rm -v /home/science/w205:/w205 midsw205/base:latest bash
   - zookeeper  
   - kafka  
   - mids  
+4. create game_app.py
 
 ```
 cd assignment-09-kckenneth  
@@ -60,6 +61,7 @@ git status
 git branch 
 git checkout -b assignment  
 vi docker-compose.yml  
+vi game_app.py
 exit  
 ```
 
@@ -74,5 +76,27 @@ docker-compose logs zookeeper | grep -i binding
 ### I also checked kafka is up and running by searching the word *started*
 ```
 docker-compose logs kafka | grep -i started
+```
+### Run python flask
+```
+docker-compose exec mids env FLASK_APP=/w205/flask-with-kafka/game_api.py flask run
+```
+### In another CLI window
+```
+docker-compose exec mids curl http://localhost:5000/
+docker-compose exec mids curl http://localhost:5000/purchase_a_sword
+```
+
+## Kafka consumption 
+
+Since we added kafka script in game_app.py that will publish player events (or action), we can consume the events log by kafkacat.  
+
+```
+docker-compose exec mids bash -c "kafkacat -C -b kafka:29092 -t events -o beginning -e"
+```
+
+## Exit
+```
+docker-compose down
 ```
 
