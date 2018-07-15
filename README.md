@@ -103,7 +103,7 @@ def purchase_sword():
     # business logic to purchase sword
     # log event to kafka
     event_logger.send(events_topic, 'purchased_sword'.encode())   # "purchase_a_sword" event will be recorded as "purchased_sword" in Kafka and published
-    return "\nSword Purchased!\n"                                 # "Sword Purchased!" screen display will be shown to the gamer
+    return "\nSword Purchased!\n"                                 # gamer received "Sword Purchased!" screen display
 ```
 
 ## In Droplet, I spin up the cluster in detached mode by -d
