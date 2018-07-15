@@ -142,9 +142,11 @@ There are two processes.
 
 ### 1) Run python flask in Flask Window
 ```
-docker-compose exec mids env FLASK_APP=/w205/flask-with-kafka/game_api.py flask run
+docker-compose exec mids env FLASK_APP=/w205/assignment-09-kckenneth/game_api.py flask run
 ```
 ### 2) Gamer Activity in Gamer Window 
+
+##### You need to ssh into Droplet from another CLI window. Once you're in the Droplet, go to /w205/assignment-09-kckenneth/ folder
 ```
 docker-compose exec mids curl http://localhost:5000/
 docker-compose exec mids curl http://localhost:5000/purchase_a_sword
