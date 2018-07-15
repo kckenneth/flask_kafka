@@ -160,4 +160,5 @@ docker-compose exec mids bash -c "kafkacat -C -b kafka:29092 -t events -o beginn
 ```
 docker-compose down
 ```
-
+# Summary
+In the following weeks, more advanced data analyatics will be explored. 
