@@ -14,7 +14,7 @@ We are now building a pipeline for smooth communications between web gamers. Int
 
 __Procedure__  
 
-In mobile game community, web-based communication is a crucial part of the game development in which players response (events) to game play must be instantly updated in order for players to enjoy playing the game without any glitch. We deployed Kafka for our web-based mobile game called **"Build a Nation"**.  
+In mobile game community, web-based communication is a crucial part of the game development in which players response (events) to game play must be instantly updated in order for players to enjoy playing a game without any glitch. We deployed Kafka for our web-based mobile game called **"Build a Nation"**.  
 
 I laid out a step by step implementation of Kafka in details in the following.  
 
