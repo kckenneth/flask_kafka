@@ -126,7 +126,7 @@ docker-compose exec kafka kafka-topics --create --topic events --partitions 1 --
 docker-compose exec kafka kafka-topics --describe --topic events --zookeeper zookeeper:32181
 ```  
 ## II. Kafka 2nd step -- Produce Messages 
-#### Kafka messages will be from the gamers web activities. Since there are two ends in this exercise, we need to open two CLI windows. 
+#### Kafka messages will be from gamers web activities. Since there are two ends in this exercise, we need to open two CLI windows. 
 
 <p align="center">
 <img src="img/sword.png" width="600"></p>
@@ -136,23 +136,21 @@ docker-compose exec kafka kafka-topics --describe --topic events --zookeeper zoo
 - Flask window  
 
 There are two processes.  
-1) We first run the flask in flask window in order to initiate the web-based applications such as **"Build A Nation"** game in this case.  
-2) A gamer will execute game activites on the web browser. Here we will execute from gamer CLI window. 
+1) We first run the flask in flask window in order to initiate a web-based application such as **"Build A Nation"** game in this case.  
+2) A gamer will execute game activites on the web browser. Here "purchase a sword" action will be executed. We will therefore execute from the gamer CLI window. 
 
-### Run python flask
+### 1) Run python flask in Flask Window
 ```
 docker-compose exec mids env FLASK_APP=/w205/flask-with-kafka/game_api.py flask run
 ```
-### In another CLI window
+### 2) Gamer Activity in Gamer Window 
 ```
 docker-compose exec mids curl http://localhost:5000/
 docker-compose exec mids curl http://localhost:5000/purchase_a_sword
 ```
 
-## Kafka consumption 
-
-Since we added kafka script in game_app.py that will publish player events (or action), we can consume the events log by kafkacat.  
-
+## III. Kafka 3rd step -- Consume Game Events or Messages
+- (1) We can consume Kafka messages independently by kafkacat as follows:  
 ```
 docker-compose exec mids bash -c "kafkacat -C -b kafka:29092 -t events -o beginning -e"
 ```
