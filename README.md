@@ -104,15 +104,6 @@ def purchase_sword():
     return "\nSword Purchased!\n"                                 # gamer received "Sword Purchased!" screen display
 ```
 
-#### Since there are two ends of this exercise, we need to open two CLI windows
-
-<p align="center">
-<img src="img/sword.png" width="600"></p>
-<p align="center">Figure 1. Data transfer in web-based communication</p>
-
-- Gamer window  
-- Flask window  
-
 ## In Droplet, I spin up the cluster in detached mode by -d
 ```
 docker-compose up -d
@@ -135,7 +126,18 @@ docker-compose exec kafka kafka-topics --create --topic events --partitions 1 --
 docker-compose exec kafka kafka-topics --describe --topic events --zookeeper zookeeper:32181
 ```  
 ## II. Kafka 2nd step -- Produce Messages 
-#### Kafka messages will be from the gamers web activity. To run the web-based game, we first need to run the flask. 
+#### Kafka messages will be from the gamers web activities. Since there are two ends in this exercise, we need to open two CLI windows. 
+
+<p align="center">
+<img src="img/sword.png" width="600"></p>
+<p align="center">Figure 2. Kafka and Flask in Game activity management</p>
+
+- Gamer window  
+- Flask window  
+
+There are two processes.  
+1) We first run the flask in flask window in order to initiate the web-based applications such as **"Build A Nation"** game in this case.  
+2) A gamer will execute game activites on the web browser. Here we will execute from gamer CLI window. 
 
 ### Run python flask
 ```
