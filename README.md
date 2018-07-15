@@ -148,14 +148,25 @@ docker-compose exec mids env FLASK_APP=/w205/assignment-09-kckenneth/game_api.py
 
 ##### You need to ssh into Droplet from another CLI window. Once you're in the Droplet, go to /w205/assignment-09-kckenneth/ folder
 ```
+docker-compose exec mids curl http://localhost:5000/purchase_a_sword
+docker-compose exec mids curl http://localhost:5000/purchase_a_sword
 docker-compose exec mids curl http://localhost:5000/
 docker-compose exec mids curl http://localhost:5000/purchase_a_sword
 ```
 
 ## III. Kafka 3rd step -- Consume Game Events or Messages
-- (1) We can consume Kafka messages independently by kafkacat as follows:  
+- 1) We consume Kafka message at the backend. So it's supposed to be in another CLI window unless we want to stop the Flask app.  
+- 2) We can also consume Kafka message in Gamer CLI window. However, in reality, gamer CLI window wouldn't have the docker cluster at all. Remember that it's for the convenience.  
 ```
 docker-compose exec mids bash -c "kafkacat -C -b kafka:29092 -t events -o beginning -e"
+```
+#### 4 messages are consumed  
+```
+purchased_sword
+purchased_sword
+default
+purchased_sword
+% Reached end of topic events [0] at offset 4: exiting
 ```
 
 ## Exit
