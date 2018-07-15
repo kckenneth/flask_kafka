@@ -116,6 +116,18 @@ docker-compose logs zookeeper | grep -i binding
 ```
 docker-compose logs kafka | grep -i started
 ```
+## I. Kafka 1st step -- Create a Topic
+#### I created a topic *events* with partition 1, replication-factor 1
+```
+docker-compose exec kafka kafka-topics --create --topic events --partitions 1 --replication-factor 1 --if-not-exists --zookeeper zookeeper:32181
+```
+#### I checked the broker I just created by *describe* function  
+```
+docker-compose exec kafka kafka-topics --describe --topic events --zookeeper zookeeper:32181
+```  
+## II. Kafka 2nd step -- Produce Messages 
+#### Kafka messages will be from the gamers web activity. To run the web-based game, we first need to run the flask. 
+
 ### Run python flask
 ```
 docker-compose exec mids env FLASK_APP=/w205/flask-with-kafka/game_api.py flask run
