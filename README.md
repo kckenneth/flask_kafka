@@ -72,6 +72,30 @@ vi game_app.py
 exit  
 ```
 
+## Flask game_app.py in details  
+```
+#!/usr/bin/env python
+from kafka import KafkaProducer
+from flask import Flask
+app = Flask(__name__)
+event_logger = KafkaProducer(bootstrap_servers='kafka:29092')
+events_topic = 'events'
+
+@app.route("/")
+def default_response():
+    event_logger.send(events_topic, 'default'.encode())
+    return "\nThis is the default response!\n"
+
+@app.route("/purchase_a_sword")
+def purchase_sword():
+    # business logic to purchase sword
+    # log event to kafka
+    event_logger.send(events_topic, 'purchased_sword'.encode())
+    return "\nSword Purchased!\n"
+```
+
+Here we are using game_app.py to call flask module to run. Any messages or events that game players generate from the web such as "purchase a sword", "purchase a horse", "upgrade the arrow", etc etc etc will be fed into Kafka. Therefore we import the **KafkaProducer** library in our game_app.py script. Kafka will then publish those events in json format. In the backend, those messages will be stored and analyzed in our game server (**Data Analytics**). For example, "purchase a sword" events will be stored with its game player ID in our game server. Any game activities that a game player can now pursue or execute because of the possession of a sword will be relayed from the backend game server to the front end so that the player could now execute additional activity in the game due to the possession of the sword.  
+
 ## In Droplet, I spin up the cluster in detached mode by -d
 ```
 docker-compose up -d
