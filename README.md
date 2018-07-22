@@ -74,7 +74,7 @@ vi game_app.py
 exit  
 ```
 
-## Flask game_app.py in details  
+## Flask game_api.py in details  
 ```
 #!/usr/bin/env python
 from kafka import KafkaProducer
