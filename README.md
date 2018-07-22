@@ -295,6 +295,25 @@ root
 +------+--------------+-----------+---------------+
 ```
 
+# Gamer Activities Analytics in Spark
+
+As a preliminary, I analyzed gamer activities in spark sql environment. I first registered the table extracted in json format into `gamer` table. I then counted the number of unique activities that gamers pursued and listed them. 
+
+```
+>>> extracted_events.registerTempTable('gamer')
+>>> spark.sql("SELECT event_type, COUNT(event_type) as event_count FROM gamer GROUP BY event_type ORDER BY event_count DESC").show()
++---------------+-----------+                                                   
+|     event_type|event_count|
++---------------+-----------+
+|purchase_shield|          3|
+| purchase_sword|          3|
+|        default|          2|
+| upgrade_shield|          1|
+|  upgrade_sword|          1|
++---------------+-----------+
+```
+We found that there are more activities on `purchase_sword` and `purchase_shield` and upgrading activities are as few as one user per activity. 
+
 ## Exit
 ```
 docker-compose down
