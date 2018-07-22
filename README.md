@@ -24,6 +24,7 @@ I laid out a step by step implementation of Flask and Kafka in details as follow
 docker pull midsw205/base:0.1.8
 docker pull confluentinc/cp-zookeeper:latest
 docker pull confluentinc/cp-kafka:latest
+docker pull midsw205/spark-python:0.0.5
 ```
 ### 2. Logging into the assignment folder
 ```
