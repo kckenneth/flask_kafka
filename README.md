@@ -76,7 +76,7 @@ exit
 ```
 
 ## Flask game_api.py in details  
-#### I introduced 3 more game actions: purchase a sheild, upgrade a sword and upgrade a shield
+#### I introduced 3 more game actions: purchase a shield, upgrade a sword and upgrade a shield
 
 ```
 #!/usr/bin/env python
