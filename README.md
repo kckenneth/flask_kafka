@@ -203,11 +203,17 @@ docker-compose exec mids bash -c "kafkacat -C -b kafka:29092 -t events -o beginn
 ```
 #### 10 messages are consumed  
 ```
-purchased_sword
-purchased_sword
-default
-purchased_sword
-% Reached end of topic events [0] at offset 4: exiting
+{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "default", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "upgrade_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "upgrade_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "default", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
+% Reached end of topic events [0] at offset 10: exiting
 ```
 
 #### Consume game events in `pyspark` container
@@ -219,13 +225,74 @@ docker-compose exec spark pyspark
 ```
 >>> raw_events = spark.read.format("kafka").option("kafka.bootstrap.servers", "kafka:29092").option("subscribe","events").option("startingOffsets", "earliest").option("endingOffsets", "latest").load() 
 >>> raw_events.cache()
->>> events = raw_events.select(raw_events.value.cast('string'))
+>>> raw_events.show()
++----+--------------------+------+---------+------+--------------------+-------------+
+| key|               value| topic|partition|offset|           timestamp|timestampType|
++----+--------------------+------+---------+------+--------------------+-------------+
+|null|[7B 22 48 6F 73 7...|events|        0|     0|2018-07-22 21:42:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     1|2018-07-22 21:42:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     2|2018-07-22 21:42:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     3|2018-07-22 21:42:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     4|2018-07-22 21:42:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     5|2018-07-22 21:42:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     6|2018-07-22 21:43:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     7|2018-07-22 21:43:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     8|2018-07-22 21:43:...|            0|
+|null|[7B 22 48 6F 73 7...|events|        0|     9|2018-07-22 21:43:...|            0|
++----+--------------------+------+---------+------+--------------------+-------------+
 ```
+Since the events we just consumed are binary format in spark (written in scala programming language), we transformed our data into `string` format in pyspark. 
+
+```
+>>> events = raw_events.select(raw_events.value.cast('string'))
+>>> events.printSchema()
+root
+ |-- value: string (nullable = true)
+
+>>> events.show(20, False)
+
++---------------------------------------------------------------------------------------------------------+
+|value                                                                                                    |
++---------------------------------------------------------------------------------------------------------+
+|{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"} |
+|{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"} |
+|{"Host": "localhost:5000", "event_type": "default", "Accept": "*/*", "User-Agent": "curl/7.47.0"}        |
+|{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"} |
+|{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}|
+|{"Host": "localhost:5000", "event_type": "upgrade_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"} |
+|{"Host": "localhost:5000", "event_type": "upgrade_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}  |
+|{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}|
+|{"Host": "localhost:5000", "event_type": "default", "Accept": "*/*", "User-Agent": "curl/7.47.0"}        |
+|{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}|
++---------------------------------------------------------------------------------------------------------+
+```
+
 3. Since the kafka messages are in json format, we will load the messages into json format in pyspark  
 ```
 >>> import json
 >>> extracted_events = events.rdd.map(lambda x: json.loads(x.value)).toDF()
+>>> extracted_events.printSchema()
+root
+ |-- Accept: string (nullable = true)
+ |-- Host: string (nullable = true)
+ |-- User-Agent: string (nullable = true)
+ |-- event_type: string (nullable = true)
+ 
 >>> extracted_events.show()
++------+--------------+-----------+---------------+
+|Accept|Host          |User-Agent |event_type     |
++------+--------------+-----------+---------------+
+|*/*   |localhost:5000|curl/7.47.0|purchase_sword |
+|*/*   |localhost:5000|curl/7.47.0|purchase_sword |
+|*/*   |localhost:5000|curl/7.47.0|default        |
+|*/*   |localhost:5000|curl/7.47.0|purchase_sword |
+|*/*   |localhost:5000|curl/7.47.0|purchase_shield|
+|*/*   |localhost:5000|curl/7.47.0|upgrade_shield |
+|*/*   |localhost:5000|curl/7.47.0|upgrade_sword  |
+|*/*   |localhost:5000|curl/7.47.0|purchase_shield|
+|*/*   |localhost:5000|curl/7.47.0|default        |
+|*/*   |localhost:5000|curl/7.47.0|purchase_shield|
++------+--------------+-----------+---------------+
 ```
 
 ## Exit
@@ -239,4 +306,9 @@ We developed our game **Build A Nation** with more game features such as
 - upgrade a sword  
 - upgrade a shield 
 
-We launched our web-based game with micro webservice app in Python, `Flask`. Any gamer activities are recorded in `Kafka` and relayed to our server. We then consumed gamer activities or events in our backend. Since event messages were coded in json format, we consumed them pyspark and analyzed player activites. In the following week, we will develop more game features and data analytics. 
+We launched our web-based game with micro webservice app in Python, `Flask`. Any gamer activities are recorded in `Kafka` and relayed to our server. We then consumed gamer activities or events in our backend. We wrote our script to produce more detailed events such as 
+- Accept  
+- Host  
+- User-Agent  
+- event_type  
+we have more information on gamer activities. Since event messages were coded in json format, we consumed them pyspark and analyzed player activites. In the following week, we will develop more game features and data analytics. 
