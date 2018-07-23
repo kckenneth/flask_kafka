@@ -110,7 +110,7 @@ docker-compose logs kafka | grep -i started
 ```
 docker-compose logs cloudera | grep -i hadoop
 ```
-### Check the Hadoop has any existing files 
+### Check if the HDFS has any existing files 
 ```
 docker-compose exec cloudera hadoop fs -ls /tmp/
 ```
