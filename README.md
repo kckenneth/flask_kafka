@@ -263,14 +263,84 @@ root
 |*/*   |localhost:5000|curl/7.47.0|default        |
 |*/*   |localhost:5000|curl/7.47.0|purchase_shield|
 +------+--------------+-----------+---------------+
+``` 
+
+# spark-submit 
+We have analyzed our subscribed messages in pyspark environment so far. We could also pipeline our subscribed messages directly to HDFS by developing several python scripts that will automatically extract and transform messages into digestible information and save them in HDFS.  
+
+## I. Extracting events
+```
+docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/extract_events.py
+```
+#### Checking in HDFS if our script automatically extract messages and save 
+```
+docker-compose exec cloudera hadoop fs -ls /tmp/
+```
+If our script is successful, we should see `extracted_events` file
+```
+drwxr-xr-x   - root   supergroup          0 2018-07-23 03:26 /tmp/extracted_events
+drwxrwxrwt   - mapred mapred              0 2018-02-06 18:27 /tmp/hadoop-yarn
+drwx-wx-wx   - root   supergroup          0 2018-07-23 03:21 /tmp/hive
+```
+We further checked `extracted_events` file
+```
+docker-compose exec cloudera hadoop fs -ls /tmp/extracted_events/
+```
+If our extracted events are successfully saved in HDFS, we should see SUCCESS file and associated main file.  AS we could run parallel processing in HDFS, every node will generate two files (1) SUCCESS and (2) saved file. Since we're running on one node, we see two files. 
+```
+-rw-r--r--   1 root supergroup          0 2018-07-23 03:26 /tmp/extracted_events/_SUCCESS
+-rw-r--r--   1 root supergroup       1232 2018-07-23 03:26 /tmp/extracted_events/part-0000
+```
+
+## II. Transforming events
+```
+docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/transform_events.py
+```
+As we have run a python script that transformed extracted messages and overwrote them in HDFS, it's a good habit to check if our files are properly saved (Sanity check). So we load files from HDFS and check the extracted messages. We first opened another CLI window and ssh into droplet. Once we're in the droplet, go to /w205/assignment-11-kckenneth/ and run spark. 
+```
+docker-compose exec spark pyspark
+```
+In spark environment, we load the files saved in HDFS
+```
+>>> my_extracted_events = sqlContext.read.parquet('/tmp/extracted_events')
+>>> my_extracted_events.printSchema()
+root
+ |-- Accept: string (nullable = true)
+ |-- Cache-Control: string (nullable = true)
+ |-- Host: string (nullable = true)
+ |-- User-Agent: string (nullable = true)
+ |-- event_type: string (nullable = true)
+ |-- timestamp: string (nullable = true)
+
+>>> my_extracted_events.show(20, False)
++------+-------------+----+-----------+---------------+-----------------------+
+|Accept|Cache-Control|Host|User-Agent |event_type     |timestamp              |
++------+-------------+----+-----------+---------------+-----------------------+
+|*/*   |no-cache     |moe |curl/7.47.0|purchase_sword |2018-07-23 03:24:55.717|
+|*/*   |no-cache     |moe |curl/7.47.0|purchase_sword |2018-07-23 03:25:04.117|
+|*/*   |no-cache     |moe |curl/7.47.0|default        |2018-07-23 03:25:10.199|
+|*/*   |no-cache     |moe |curl/7.47.0|purchase_sword |2018-07-23 03:25:19.002|
+|*/*   |no-cache     |moe |curl/7.47.0|purchase_shield|2018-07-23 03:25:24.06 |
+|*/*   |no-cache     |moe |curl/7.47.0|upgrade_sword  |2018-07-23 03:25:37.492|
+|*/*   |no-cache     |moe |curl/7.47.0|purchase_shield|2018-07-23 03:25:46.406|
+|*/*   |no-cache     |moe |curl/7.47.0|upgrade_shield |2018-07-23 03:25:52.359|
+|*/*   |no-cache     |moe |curl/7.47.0|default        |2018-07-23 03:25:58.302|
+|*/*   |no-cache     |moe |curl/7.47.0|purchase_shield|2018-07-23 03:26:03.872|
++------+-------------+----+-----------+---------------+-----------------------+
+```
+We see that our extracted events are properly transformed into several keys and saved in HDFS
+
+## III. Separating events
+```
+docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/separate_events.py
 ```
 
 # Gamer Activities Analytics in Spark
 
-As a preliminary, I analyzed gamer activities in spark sql environment. I first registered the table extracted in json format into `gamer` table. I then counted the number of unique activities that gamers pursued and listed them. 
+After loading our saved files, I analyzed gamer activities in spark sql environment. I first registered the table extracted in json format into `gamer` table. I then counted the number of unique activities that gamers pursued and listed them. 
 
 ```
->>> extracted_events.registerTempTable('gamer')
+>>> my_extracted_events.registerTempTable('gamer')
 >>> spark.sql("SELECT event_type, COUNT(event_type) as event_count FROM gamer GROUP BY event_type ORDER BY event_count DESC").show()
 +---------------+-----------+                                                   
 |     event_type|event_count|
@@ -283,39 +353,6 @@ As a preliminary, I analyzed gamer activities in spark sql environment. I first 
 +---------------+-----------+
 ```
 We found that there are more activities on `purchase_sword` and `purchase_shield` and upgrading activities are as few as one user per activity. 
-
-# spark-submit 
-We have analyzed our subscribed messages in pyspark environment so far. We could also pipeline our subscribed messages directly to HDFS by developing several python scripts that will automatically extract and transform messages into digestible information and save them in HDFS.  
-
-## I. Extracting events
-```
-docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/extract_events.py
-```
-#### Checking in HDFS if our script automatically extract messages and save 
-```
-docker-compose exec cloudera hadoop fs -ls /tmp/
-docker-compose exec cloudera hadoop fs -ls /tmp/extracted_events/
-```
-## II. Transforming events
-```
-docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/transform_events.py
-```
-As we have run a python script that transformed extracted messages and overwrote them in HDFS, it's a MUST to check if our files are properly saved. So we load files from HDFS and check the extracted messages. We first opened another CLI window and ssh into droplet. Once we're in the droplet, go to /w205/assignment-11-kckenneth/ and run spark. 
-```
-docker-compose exec spark pyspark
-```
-In spark environment, we load the files saved in HDFS
-```
-my_extracted_events = sqlContext.read.parquet('/tmp/extracted_events')
-my_extracted_events.show()
-
-
-```
-
-## III. Separating events
-```
-docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/separate_events.py
-```
 
 ## Exit
 ```
@@ -333,4 +370,5 @@ We launched our web-based game with micro webservice app in Python, `Flask`. Any
 - Host  
 - User-Agent  
 - event_type  
-we have more information on gamer activities. Since event messages were coded in json format, we consumed them pyspark and analyzed player activites. In the following week, we will develop more game features and data analytics. 
+- timestamp 
+we have more information on gamer activities. We also pipelined our web-based game communications to HDFS by employing spark-submit function in our container. By running a pre-designed `extract_events.py` and `transform_events.py`, we developed a pipeline that digest gamers events in real time, feed them into our backend by kafka and save messages in HDFS. 
