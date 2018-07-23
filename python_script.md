@@ -53,6 +53,14 @@ def upgrade_a_shield():
     upgrade_shield_event = {'event_type': 'upgrade_shield'}
     log_to_kafka('events', upgrade_shield_event)
     return "\nShield Upgraded!\n"
+    
+ 
+@app.route("/purchase_a_knife")
+def purchase_a_knife():
+    purchase_knife_event = {'event_type': 'purchase_knife',
+                            'description': 'very sharp knife'}
+    log_to_kafka('events', purchase_knife_event)
+    return "Knife Purchased!\n"
 ```
 
 #### I introduced 3 more game actions: purchase a shield, upgrade a sword and upgrade a shield  
