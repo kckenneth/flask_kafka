@@ -27,8 +27,10 @@ docker pull confluentinc/cp-kafka:latest
 docker pull midsw205/spark-python:0.0.5
 docker pull midsw205/cdh-minimal:latest
 ```
-- midsw205/base:0.1.8 [python, jupyter apps]  
-- confluentinc/cp-zookeeper:latest [zookeeper manager for kafka]  
+- midsw205/base \t [python, jupyter apps]  
+- confluentinc/cp-zookeeper \t [zookeeper manager for kafka]  
+- confluentinc/cp-kafka [kafka app]
+- midsw205/spark-python
 
 ### 2. Logging into the assignment folder
 ```
