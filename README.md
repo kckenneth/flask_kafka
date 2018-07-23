@@ -85,7 +85,7 @@ exit
 ```
 
 ## Python script for our Flask and Spark 
-Since there are 4 python scripts, I separated python script in another annotation for clear walk through and detailed explanation. 
+Since there are 4 python scripts, I separated python script in another annotation for clear walk-through and detailed explanation. 
 
 - game_api.py
 - extract_events.py
@@ -93,7 +93,6 @@ Since there are 4 python scripts, I separated python script in another annotatio
 - separate_events.py
 
 https://github.com/kckenneth/flask_kafka/blob/master/python_script.md
-
 
 ## In Droplet, I spin up the cluster in detached mode by -d
 ```
@@ -107,6 +106,15 @@ docker-compose logs zookeeper | grep -i binding
 ```
 docker-compose logs kafka | grep -i started
 ```
+### Check if the cloudera is up and running by searching the word *hadoop* in the logs file
+```
+docker-compose logs cloudera | grep -i hadoop
+```
+### Check the Hadoop has any existing files 
+```
+docker-compose exec cloudera hadoop fs -ls /tmp/
+```
+
 ## I. Kafka 1st step -- Create a Topic
 #### I created a topic *events* with partition 1, replication-factor 1
 ```
@@ -132,7 +140,7 @@ There are two processes.
 
 ### 1) Run python flask in Flask Window
 ```
-docker-compose exec mids env FLASK_APP=/w205/assignment-10-kckenneth/game_api.py flask run
+docker-compose exec mids env FLASK_APP=/w205/assignment-11-kckenneth/game_api.py flask run --host 0.0.0.0
 ```
 ### 2) Gamer Activity in Gamer Window 
 
@@ -173,7 +181,7 @@ docker-compose exec mids bash -c "kafkacat -C -b kafka:29092 -t events -o beginn
 % Reached end of topic events [0] at offset 10: exiting
 ```
 
-#### Consume game events in `pyspark` container
+### Consume game events in `pyspark` container
 1. We first launch the `pyspark` container  
 ```
 docker-compose exec spark pyspark
@@ -270,6 +278,39 @@ As a preliminary, I analyzed gamer activities in spark sql environment. I first 
 +---------------+-----------+
 ```
 We found that there are more activities on `purchase_sword` and `purchase_shield` and upgrading activities are as few as one user per activity. 
+
+# spark-submit 
+We have analyzed our subscribed messages in pyspark environment so far. We could also pipeline our subscribed messages directly to HDFS by developing several python scripts that will automatically extract and transform messages into digestible information and save them in HDFS.  
+
+## I. Extracting events
+```
+docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/extract_events.py
+```
+#### Checking in HDFS if our script automatically extract messages and save 
+```
+docker-compose exec cloudera hadoop fs -ls /tmp/
+docker-compose exec cloudera hadoop fs -ls /tmp/extracted_events/
+```
+## II. Transforming events
+```
+docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/transform_events.py
+```
+As we have run a python script that transformed extracted messages and overwrote them in HDFS, it's a MUST to check if our files are properly saved. So we load files from HDFS and check the extracted messages. We first opened another CLI window and ssh into droplet. Once we're in the droplet, go to /w205/assignment-11-kckenneth/ and run spark. 
+```
+docker-compose exec spark pyspark
+```
+In spark environment, we load the files saved in HDFS
+```
+my_extracted_events = sqlContext.read.parquet('/tmp/extracted_events')
+my_extracted_events.show()
+
+
+```
+
+## III. Separating events
+```
+docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/separate_events.py
+```
 
 ## Exit
 ```
