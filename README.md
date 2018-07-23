@@ -114,6 +114,11 @@ docker-compose logs cloudera | grep -i hadoop
 ```
 docker-compose exec cloudera hadoop fs -ls /tmp/
 ```
+You should have two files: yarn and hive
+```
+drwxrwxrwt   - mapred mapred              0 2018-02-06 18:27 /tmp/hadoop-yarn
+drwx-wx-wx   - root   supergroup          0 2018-07-23 03:21 /tmp/hive
+```
 
 ## I. Kafka 1st step -- Create a Topic
 #### I created a topic *events* with partition 1, replication-factor 1
