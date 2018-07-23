@@ -268,6 +268,10 @@ root
 # spark-submit 
 We have analyzed our subscribed messages in pyspark environment so far. We could also pipeline our subscribed messages directly to HDFS by developing several python scripts that will automatically extract and transform messages into digestible information and save them in HDFS.  
 
+<p align="center">
+<img src="img/backend.png" width="600"></p>
+<p align="center">Figure 3. Streamline of kafka messages into HDFS</p>
+
 ## I. Extracting events
 ```
 docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/extract_events.py
