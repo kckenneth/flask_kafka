@@ -1,10 +1,9 @@
-|Title |  Kafka deployment in Web-based Mobile Game |
-|-----------|----------------------------------|
-|Author | Kenneth Chen |
-|Utility | Flask, Kafka, Spark, HDFS, Droplet, Docker |
-|Date | 7/1/2018 |
+# Python script walk-through
 
 This is a detailed walk through on python script we're using in our web-based game development.  
+
+# Flask Implementation
+## game_api.py 
 
 ```
 #!/usr/bin/env python
