@@ -36,7 +36,7 @@ docker pull midsw205/cdh-minimal:latest
 
 ### 2. Logging into the assignment folder
 ```
-cd w205/assignment-11-kckenneth/
+cd w205/assignment-12-kckenneth/
 ```
 
 ### 3. Checking what's in my directory 
@@ -63,7 +63,7 @@ docker rm -f $(docker ps -aq)
 docker run -it --rm -v /home/science/w205:/w205 midsw205/base:latest bash
 ```
 ## Inside the Docker Container
-1. check into assignment 11 folder,
+1. check into assignment 12 folder,
 2. check git branch, create assignment branch if necessary  
 3. create docker-compose.yml with 5 containers
   - zookeeper  
@@ -71,26 +71,27 @@ docker run -it --rm -v /home/science/w205:/w205 midsw205/base:latest bash
   - mids  
   - spark
   - cloudera 
-4. create 4 python scripts: (1) game_api.py, (2) extract_events.py, (3) transform_events.py, (4) separate_events.py
-
+4. create the following python scripts.  
+  - game_api.py (for flask)
+  - filtered_writes.py (extract, transform, filter kafka messages and save in HDFS) 
+  
 ```
-cd assignment-11-kckenneth  
+cd assignment-12-kckenneth  
 ls  
 git status  
 git branch 
 git checkout -b assignment  
 vi docker-compose.yml  
 vi game_api.py
+vi filtered_writes.py
 exit  
 ```
 
 ## Python script for our Flask and Spark 
-Since there are 4 python scripts, I separated python script in another annotation for clear walk-through and detailed explanation. 
+Since there are python scripts, I separated python scripts in another annotation for clear walk-through and detailed explanation. 
 
 - game_api.py
-- extract_events.py
-- transform_events.py
-- separate_events.py
+- filtered_writes.py
 
 https://github.com/kckenneth/flask_kafka/blob/master/python_script.md
 
@@ -149,18 +150,20 @@ docker-compose exec mids env FLASK_APP=/w205/assignment-11-kckenneth/game_api.py
 ```
 ### 2) Gamer Activity in Gamer Window 
 
-##### You need to ssh into Droplet from another CLI window. Once you're in the Droplet, go to /w205/assignment-10-kckenneth/ folder
+##### You need to ssh into Droplet from another CLI window. Once you're in the Droplet, go to /w205/assignment-12-kckenneth/ folder
+We're using Apache Bench (ab) that allows us to replicate the messages. Since we have a few more game features, we will produce them in multiple. 
 ```
-docker-compose exec mids curl http://localhost:5000/purchase_a_sword
-docker-compose exec mids curl http://localhost:5000/purchase_a_sword
-docker-compose exec mids curl http://localhost:5000/
-docker-compose exec mids curl http://localhost:5000/purchase_a_sword
-docker-compose exec mids curl http://localhost:5000/purchase_a_shield
-docker-compose exec mids curl http://localhost:5000/upgrade_a_sword
-docker-compose exec mids curl http://localhost:5000/purchase_a_shield
-docker-compose exec mids curl http://localhost:5000/upgrade_a_shield
-docker-compose exec mids curl http://localhost:5000/
-docker-compose exec mids curl http://localhost:5000/purchase_a_shield
+docker-compose exec mids ab -n 10 -H "Host: user1.comcast.com" http://localhost:5000/
+docker-compose exec mids ab -n 10 -H "Host: user1.comcast.com" http://localhost:5000/purchase_a_sword
+docker-compose exec mids ab -n 7 -H "Host: user2.att.com" http://localhost:5000/
+docker-compose exec mids ab -n 15 -H "Host: user2.att.com" http://localhost:5000/purchase_a_shield
+docker-compose exec mids ab -n 15 -H "Host: user3.verizon.com" http://localhost:5000/purchase_a_sword
+docker-compose exec mids ab -n 5 -H "Host: user3.verizon.com" http://localhost:5000/upgrade_a_sword
+docker-compose exec mids ab -n 5 -H "Host: user1.comcast.com" http://localhost:5000/upgrade_a_sword
+docker-compose exec mids ab -n 7 -H "Host: user2.att.com" http://localhost:5000/upgrade_a_shield
+docker-compose exec mids ab -n 20 -H "Host: user4.spectrum.com" http://localhost:5000/purchase_a_knife
+docker-compose exec mids ab -n 20 -H "Host: user4.spectrum.com" http://localhost:5000/
+docker-compose exec mids ab -n 14 -H "Host: user5.fios.com" http://localhost:5000/purchase_a_shield
 ```
 
 ## III. Kafka 3rd step -- Consume Game Events or Messages
@@ -272,9 +275,9 @@ We have analyzed our subscribed messages in pyspark environment so far. We could
 <img src="img/backend.png" width="600"></p>
 <p align="center">Figure 3. Streamline of kafka messages into HDFS</p>
 
-## I. Extracting events
+## I. Extract, Transform, Filter, Save events (filtered_writes.py)
 ```
-docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/extract_events.py
+docker-compose exec spark spark-submit /w205/assignment-12-kckenneth/filtered_writes.py
 ```
 #### Checking in HDFS if our script automatically extract messages and save 
 ```
@@ -296,11 +299,7 @@ If our extracted events are successfully saved in HDFS, we should see SUCCESS fi
 -rw-r--r--   1 root supergroup       1232 2018-07-23 03:26 /tmp/extracted_events/part-0000
 ```
 
-## II. Transforming events
-```
-docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/transform_events.py
-```
-As we have run a python script that transformed extracted messages and overwrote them in HDFS, it's a good habit to check if our files are properly saved (Sanity check). So we load files from HDFS and check the extracted messages. We first opened another CLI window and ssh into droplet. Once we're in the droplet, go to /w205/assignment-11-kckenneth/ and run spark. 
+As we have run a python script that extracted, transformed extracted messages, filtered and overwrote them in HDFS, it's a good habit to check if our files are properly saved (Sanity check). So we load files from HDFS and check the extracted messages. We first opened another CLI window and ssh into droplet. Once we're in the droplet, go to /w205/assignment-12-kckenneth/ and run spark. 
 ```
 docker-compose exec spark pyspark
 ```
@@ -334,10 +333,6 @@ root
 ```
 We see that our extracted events are properly transformed into several keys and saved in HDFS
 
-## III. Separating events
-```
-docker-compose exec spark spark-submit /w205/assignment-11-kckenneth/separate_events.py
-```
 
 # Gamer Activities Analytics in Spark
 
