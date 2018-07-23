@@ -87,20 +87,13 @@ exit
 ## Python script for our Flask and Spark 
 Since there are 4 python scripts, I separated python script in another annotation for clear walk through and detailed explanation. 
 
+- game_api.py
+- extract_events.py
+- transform_events.py
+- separate_events.py
+
 https://github.com/kckenneth/flask_kafka/blob/master/python_script.md
 
-
-#### I introduced 3 more game actions: purchase a shield, upgrade a sword and upgrade a shield  
- 
-Here we are using game_api.py to call flask module to run. Any messages or events that game players generate from the web such as "purchase a sword", "purchase a horse", "upgrade the arrow", etc etc etc will be fed into Kafka. Therefore we import the **KafkaProducer** library in our game_app.py script. Kafka will then publish those events in json format. In the frontend, we can enrich our web page with more **CSS** features for gamer experiences. But in this exercise, we will only execute a simple message. In the backend, those messages will be stored and analyzed in our game server (**Data Analytics**). For example, "purchase a sword" events will be stored with its game player ID in our game server. Any game activities that a game player can now pursue or execute because of the possession of a sword will be relayed from the backend game server to the front end so that the player could now execute additional activity in the game due to the possession of the sword.  
-
-#### One of the flask app methods, purchase_sword(), to remind myself
-```
-@app.route("/purchase_a_sword")                                   # gamer input "purchase_a_sword" after the slash /
-def purchase_sword():
-    event_logger.send(events_topic, 'purchased_sword'.encode())   # "purchase_a_sword" event will be recorded as "purchased_sword" in Kafka. It will be published instantly and consumed at the backend 
-    return "\nSword Purchased!\n"                                 # gamer received "Sword Purchased!" screen display
-```
 
 ## In Droplet, I spin up the cluster in detached mode by -d
 ```
