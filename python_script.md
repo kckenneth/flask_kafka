@@ -72,20 +72,20 @@ def purchase_sword():
 
 ```
 #!/usr/bin/env python
-"""Extract events from kafka and write them to hdfs
-"""
+"""Extract events from kafka and write them to hdfs"""
+
 import json
 from pyspark.sql import SparkSession
 
 
 def main():
-    """main
-    """
+    """main"""
     spark = SparkSession \
         .builder \
         .appName("ExtractEventsJob") \
         .getOrCreate()
-
+    
+    # Reading kafka events into raw_events variable
     raw_events = spark \
         .read \
         .format("kafka") \
@@ -94,10 +94,12 @@ def main():
         .option("startingOffsets", "earliest") \
         .option("endingOffsets", "latest") \
         .load()
-
+    
+    # Since all events are coded in binary format in spark, we change them into string format
     events = raw_events.select(raw_events.value.cast('string'))
     extracted_events = events.rdd.map(lambda x: json.loads(x.value)).toDF()
 
+    # saving extracted events into HDFS 
     extracted_events \
         .write \
         .parquet("/tmp/extracted_events")
@@ -110,8 +112,8 @@ if __name__ == "__main__":
 ## transform_events.py
 ```
 #!/usr/bin/env python
-"""Extract events from kafka, transform, and write to hdfs
-"""
+"""Extract events from kafka, transform, and write to hdfs"""
+
 import json
 from pyspark.sql import SparkSession, Row
 from pyspark.sql.functions import udf
@@ -133,6 +135,7 @@ def main():
         .appName("ExtractEventsJob") \
         .getOrCreate()
 
+    # Reading kafka events into raw_events variable
     raw_events = spark \
         .read \
         .format("kafka") \
@@ -142,6 +145,7 @@ def main():
         .option("endingOffsets", "latest") \
         .load()
 
+    # Transforming binary into string format
     munged_events = raw_events \
         .select(raw_events.value.cast('string').alias('raw'),
                 raw_events.timestamp.cast('string')) \
@@ -154,6 +158,7 @@ def main():
         .toDF()
     extracted_events.show()
 
+    # Saving extracted events in HDFS
     extracted_events \
         .write \
         .mode("overwrite") \
