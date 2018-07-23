@@ -190,7 +190,7 @@ docker-compose exec spark spark-submit /w205/assignment-12-kckenneth/filtered_wr
 ```
 docker-compose exec cloudera hadoop fs -ls /tmp/
 ```
-If our script is successful, we should see `extracted_events` file
+If our script is successful, we should see `extracted_events` and `purchases` file
 ```
 Found 4 items
 drwxr-xr-x   - root   supergroup          0 2018-07-23 15:45 /tmp/extracted_events
@@ -198,15 +198,21 @@ drwxrwxrwt   - mapred mapred              0 2018-02-06 18:27 /tmp/hadoop-yarn
 drwx-wx-wx   - root   supergroup          0 2018-07-23 15:04 /tmp/hive
 drwxr-xr-x   - root   supergroup          0 2018-07-23 15:16 /tmp/purchases
 ```
-We further checked `purchases` file
+We further checked `extracted_events` file
+```
+Found 2 items
+-rw-r--r--   1 root supergroup          0 2018-07-23 17:04 /tmp/extracted_events/_SUCCESS
+-rw-r--r--   1 root supergroup       1381 2018-07-23 17:04 /tmp/extracted_events/part-00000-19067b0f-d9bb-49bd-912a-bb08b2135e85-c000.snappy.parquet
+```
+We also checked `purchases` file
 ```
 docker-compose exec cloudera hadoop fs -ls /tmp/purchases
 ```
 If our extracted events are successfully saved in HDFS, we should see SUCCESS file and associated main file.  AS we could run parallel processing in HDFS, every node will generate two files (1) SUCCESS and (2) saved file. Since we're running on one node, we see two files. 
 ```
 Found 2 items
--rw-r--r--   1 root supergroup          0 2018-07-23 15:16 /tmp/purchases/_SUCCESS
--rw-r--r--   1 root supergroup       1666 2018-07-23 15:16 /tmp/purchases/part-00000-107b20ca-b184-49e3-a84f-472644e7fd02-c000.snappy.parquet
+-rw-r--r--   1 root supergroup          0 2018-07-23 17:06 /tmp/purchases/_SUCCESS
+-rw-r--r--   1 root supergroup       1684 2018-07-23 17:06 /tmp/purchases/part-00000-100a8ca2-a4c0-41bd-b3ac-3b45aac8815d-c000.snappy.parquet
 ```
 
 As we have run a python script that extracted, transformed extracted messages, filtered and overwrote them in HDFS, it's a good habit to check if our files are properly saved (Sanity check). So we load files from HDFS and check the extracted messages. We first opened another CLI window and ssh into droplet. Once we're in the droplet, go to /w205/assignment-12-kckenneth/ and run spark. 
@@ -215,30 +221,29 @@ docker-compose exec spark pyspark
 ```
 In spark environment, we load the files saved in HDFS
 ```
->>> my_filtered_events = sqlContext.read.parquet('/tmp/extracted_events')
->>> my_filtered_events.printSchema()
+>>> my_extracted_events = sqlContext.read.parquet('/tmp/extracted_events')
+>>> my_extracted_events.printSchema()
 root
  |-- Accept: string (nullable = true)
  |-- Host: string (nullable = true)
  |-- User-Agent: string (nullable = true)
  |-- event_type: string (nullable = true)
- |-- timestamp: string (nullable = true)
 
->>> my_filtered_events.show(10, False)
-+------+-----------------+---------------+--------------+-----------------------+
-|Accept|Host             |User-Agent     |event_type    |timestamp              |
-+------+-----------------+---------------+--------------+-----------------------+
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.711|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.714|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.716|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.718|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.721|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.722|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.724|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.735|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.742|
-|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.747|
-+------+-----------------+---------------+--------------+-----------------------+
+>>> my_extracted_events.show(10, False)
++------+-----------------+---------------+----------+
+|Accept|Host             |User-Agent     |event_type|
++------+-----------------+---------------+----------+
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
+|*/*   |user1.comcast.com|ApacheBench/2.3|default   |
++------+-----------------+---------------+----------+
 only showing top 10 rows
 ```
 We see that our extracted events are properly transformed into several keys and saved in HDFS
@@ -249,19 +254,56 @@ We see that our extracted events are properly transformed into several keys and 
 After loading our saved files, I analyzed gamer activities in spark sql environment. I first registered the table extracted in json format into `gamer` table. I then counted the number of unique activities that gamers pursued and listed them. 
 
 ```
->>> my_filtered_events.registerTempTable('gamer')
+>>> my_extracted_events.registerTempTable('gamer')
+>>> spark.sql("SELECT COUNT(*) FROM gamer").show()
++--------+
+|count(1)|
++--------+
+|     128|
++--------+
+
 >>> spark.sql("SELECT event_type, COUNT(event_type) as event_count FROM gamer GROUP BY event_type ORDER BY event_count DESC").show()
 +---------------+-----------+                                                   
 |     event_type|event_count|
 +---------------+-----------+
-|purchase_shield|          3|
-| purchase_sword|          3|
-|        default|          2|
-| upgrade_shield|          1|
-|  upgrade_sword|          1|
+|        default|         37|
+|purchase_shield|         29|
+| purchase_sword|         25|
+| purchase_knife|         20|
+|  upgrade_sword|         10|
+| upgrade_shield|          7|
 +---------------+-----------+
+
+>>> spark.sql("SELECT Host, COUNT(*) as number_of_player FROM gamer GROUP BY Host ORDER BY number_of_player DESC").show()
++------------------+----------------+                                           
+|              Host|number_of_player|
++------------------+----------------+
+|user4.spectrum.com|              40|
+|     user2.att.com|              29|
+| user1.comcast.com|              25|
+| user3.verizon.com|              20|
+|    user5.fios.com|              14|
++------------------+----------------+
 ```
-We found that there are more activities on `purchase_sword` and `purchase_shield` and upgrading activities are as few as one user per activity. 
+We found that there are total of 128 gamer activites. Majority of them are just 'default' playing. The 2nd most activity gamer pursue is "purchasing shield" 29 times. We also checked how many players from our web-based game. There are total of 5 players, and a player from `spectrum` host plays the most. 
+
+# Running Spark in Jupyter Notebook
+
+We can also run Spark in Jupyter Notebook. To do so, we call spark in Jupyter environment
+```
+docker-compose exec spark env PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS='notebook --no-browser --port 8888 --ip 0.0.0.0 --allow-root' pyspark
+```
+
+In another CLI window, we create a symbolic link for our mounted directory to spark environment
+```
+ln -s /w205 w205
+exit
+```
+
+In Jupyter Notebook, we can continue with our kafka message analytics as usual. 
+
+I created a juypter notebook `extract_events.ipynb`.
+
 
 ## Exit
 ```
@@ -281,3 +323,7 @@ We launched our web-based game with micro webservice app in Python, `Flask`. Any
 - event_type  
 - timestamp 
 we have more information on gamer activities. We also pipelined our web-based game communications to HDFS by employing spark-submit function in our container. By running a pre-designed `extract_events.py` and `transform_events.py`, we developed a pipeline that digest gamers events in real time, feed them into our backend by kafka and save messages in HDFS. 
+
+Our game analytics shows an insight into which player plays the game most often and what activity a player pursue the most during the game. We observed that a player from `spectrum` host plays the most. Majority of players purchased shield. 
+
+We learned how to set up docker-compose.yml and include containers as necessary. We also launched our web-based game by flask app implementation. We also consume any activities gamer pursue in our web based game by kafka. We employed accurate recording of the gamer activities such as their host, timestamp, activities such as purchase a sword, upgrade a sword, etc etc. We saved our kafka messages relayed from frontend to our backend in HDFS. Data analysis was mainly done in spark step by step. In the end, we developed a pipeline that streamline kafka messages from the frontend directly to our datawarehouse such as HDFS and save them in parquet format. By doing so, we were able to analyze the progress of our game, player engagement with our products and what kinds of activities players enjoy playing in the game. 
