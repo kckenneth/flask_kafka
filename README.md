@@ -146,7 +146,7 @@ There are two processes.
 
 ### 1) Run python flask in Flask Window
 ```
-docker-compose exec mids env FLASK_APP=/w205/assignment-11-kckenneth/game_api.py flask run --host 0.0.0.0
+docker-compose exec mids env FLASK_APP=/w205/assignment-12-kckenneth/game_api.py flask run --host 0.0.0.0
 ```
 ### 2) Gamer Activity in Gamer Window 
 
@@ -170,105 +170,8 @@ docker-compose exec mids ab -n 14 -H "Host: user5.fios.com" http://localhost:500
 - 1) We consume Kafka message at the backend. So it's supposed to be in another CLI window unless we want to stop the Flask app.  
 - 2) We can also consume Kafka message in Gamer CLI window. However, in reality, gamer CLI window wouldn't have the docker cluster at all. Remember that it's for the convenience.  
 
-### Consume game events or messages in `mids` container
-```
-docker-compose exec mids bash -c "kafkacat -C -b kafka:29092 -t events -o beginning -e"
-```
-#### 10 messages are consumed  
-```
-{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "default", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "upgrade_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "upgrade_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "default", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}
-% Reached end of topic events [0] at offset 10: exiting
-```
-
-### Consume game events in `pyspark` container
-1. We first launch the `pyspark` container  
-```
-docker-compose exec spark pyspark
-```
-2. We then consume the events or messages in spark  
-```
->>> raw_events = spark.read.format("kafka").option("kafka.bootstrap.servers", "kafka:29092").option("subscribe","events").option("startingOffsets", "earliest").option("endingOffsets", "latest").load() 
->>> raw_events.cache()
->>> raw_events.show()
-+----+--------------------+------+---------+------+--------------------+-------------+
-| key|               value| topic|partition|offset|           timestamp|timestampType|
-+----+--------------------+------+---------+------+--------------------+-------------+
-|null|[7B 22 48 6F 73 7...|events|        0|     0|2018-07-22 21:42:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     1|2018-07-22 21:42:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     2|2018-07-22 21:42:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     3|2018-07-22 21:42:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     4|2018-07-22 21:42:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     5|2018-07-22 21:42:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     6|2018-07-22 21:43:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     7|2018-07-22 21:43:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     8|2018-07-22 21:43:...|            0|
-|null|[7B 22 48 6F 73 7...|events|        0|     9|2018-07-22 21:43:...|            0|
-+----+--------------------+------+---------+------+--------------------+-------------+
-```
-Since the events we just consumed are binary format in spark (written in scala programming language), we transformed our data into `string` format in pyspark. 
-
-```
->>> events = raw_events.select(raw_events.value.cast('string'))
->>> events.printSchema()
-root
- |-- value: string (nullable = true)
-
->>> events.show(20, False)
-
-+---------------------------------------------------------------------------------------------------------+
-|value                                                                                                    |
-+---------------------------------------------------------------------------------------------------------+
-|{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"} |
-|{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"} |
-|{"Host": "localhost:5000", "event_type": "default", "Accept": "*/*", "User-Agent": "curl/7.47.0"}        |
-|{"Host": "localhost:5000", "event_type": "purchase_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"} |
-|{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}|
-|{"Host": "localhost:5000", "event_type": "upgrade_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"} |
-|{"Host": "localhost:5000", "event_type": "upgrade_sword", "Accept": "*/*", "User-Agent": "curl/7.47.0"}  |
-|{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}|
-|{"Host": "localhost:5000", "event_type": "default", "Accept": "*/*", "User-Agent": "curl/7.47.0"}        |
-|{"Host": "localhost:5000", "event_type": "purchase_shield", "Accept": "*/*", "User-Agent": "curl/7.47.0"}|
-+---------------------------------------------------------------------------------------------------------+
-```
-
-3. Since the kafka messages are in json format, we will load the messages into json format in pyspark  
-```
->>> import json
->>> extracted_events = events.rdd.map(lambda x: json.loads(x.value)).toDF()
->>> extracted_events.printSchema()
-root
- |-- Accept: string (nullable = true)
- |-- Host: string (nullable = true)
- |-- User-Agent: string (nullable = true)
- |-- event_type: string (nullable = true)
- 
->>> extracted_events.show()
-+------+--------------+-----------+---------------+
-|Accept|Host          |User-Agent |event_type     |
-+------+--------------+-----------+---------------+
-|*/*   |localhost:5000|curl/7.47.0|purchase_sword |
-|*/*   |localhost:5000|curl/7.47.0|purchase_sword |
-|*/*   |localhost:5000|curl/7.47.0|default        |
-|*/*   |localhost:5000|curl/7.47.0|purchase_sword |
-|*/*   |localhost:5000|curl/7.47.0|purchase_shield|
-|*/*   |localhost:5000|curl/7.47.0|upgrade_shield |
-|*/*   |localhost:5000|curl/7.47.0|upgrade_sword  |
-|*/*   |localhost:5000|curl/7.47.0|purchase_shield|
-|*/*   |localhost:5000|curl/7.47.0|default        |
-|*/*   |localhost:5000|curl/7.47.0|purchase_shield|
-+------+--------------+-----------+---------------+
-``` 
-
 # spark-submit 
+### Pipelining kafka messages into HDFS
 We have analyzed our subscribed messages in pyspark environment so far. We could also pipeline our subscribed messages directly to HDFS by developing several python scripts that will automatically extract and transform messages into digestible information and save them in HDFS.  
 
 <p align="center">
@@ -276,7 +179,11 @@ We have analyzed our subscribed messages in pyspark environment so far. We could
 <p align="center">Figure 3. Streamline of kafka messages into HDFS</p>
 
 ## I. Extract, Transform, Filter, Save events (filtered_writes.py)
+
+We used two pipeline scripts: one for extract and transform kafka messages and the other for filtering only the gamer activity such as "purchase_sword" and saving them into HDFS. 
 ```
+docker-compose exec spark spark-submit /w205/assignment-12-kckenneth/extract_events.py
+docker-compose exec spark spark-submit /w205/assignment-12-kckenneth/transform_events.py
 docker-compose exec spark spark-submit /w205/assignment-12-kckenneth/filtered_writes.py
 ```
 #### Checking in HDFS if our script automatically extract messages and save 
@@ -285,18 +192,21 @@ docker-compose exec cloudera hadoop fs -ls /tmp/
 ```
 If our script is successful, we should see `extracted_events` file
 ```
-drwxr-xr-x   - root   supergroup          0 2018-07-23 03:26 /tmp/extracted_events
+Found 4 items
+drwxr-xr-x   - root   supergroup          0 2018-07-23 15:45 /tmp/extracted_events
 drwxrwxrwt   - mapred mapred              0 2018-02-06 18:27 /tmp/hadoop-yarn
-drwx-wx-wx   - root   supergroup          0 2018-07-23 03:21 /tmp/hive
+drwx-wx-wx   - root   supergroup          0 2018-07-23 15:04 /tmp/hive
+drwxr-xr-x   - root   supergroup          0 2018-07-23 15:16 /tmp/purchases
 ```
-We further checked `extracted_events` file
+We further checked `purchases` file
 ```
-docker-compose exec cloudera hadoop fs -ls /tmp/extracted_events/
+docker-compose exec cloudera hadoop fs -ls /tmp/purchases
 ```
 If our extracted events are successfully saved in HDFS, we should see SUCCESS file and associated main file.  AS we could run parallel processing in HDFS, every node will generate two files (1) SUCCESS and (2) saved file. Since we're running on one node, we see two files. 
 ```
--rw-r--r--   1 root supergroup          0 2018-07-23 03:26 /tmp/extracted_events/_SUCCESS
--rw-r--r--   1 root supergroup       1232 2018-07-23 03:26 /tmp/extracted_events/part-0000
+Found 2 items
+-rw-r--r--   1 root supergroup          0 2018-07-23 15:16 /tmp/purchases/_SUCCESS
+-rw-r--r--   1 root supergroup       1666 2018-07-23 15:16 /tmp/purchases/part-00000-107b20ca-b184-49e3-a84f-472644e7fd02-c000.snappy.parquet
 ```
 
 As we have run a python script that extracted, transformed extracted messages, filtered and overwrote them in HDFS, it's a good habit to check if our files are properly saved (Sanity check). So we load files from HDFS and check the extracted messages. We first opened another CLI window and ssh into droplet. Once we're in the droplet, go to /w205/assignment-12-kckenneth/ and run spark. 
@@ -305,31 +215,31 @@ docker-compose exec spark pyspark
 ```
 In spark environment, we load the files saved in HDFS
 ```
->>> my_extracted_events = sqlContext.read.parquet('/tmp/extracted_events')
->>> my_extracted_events.printSchema()
+>>> my_filtered_events = sqlContext.read.parquet('/tmp/extracted_events')
+>>> my_filtered_events.printSchema()
 root
  |-- Accept: string (nullable = true)
- |-- Cache-Control: string (nullable = true)
  |-- Host: string (nullable = true)
  |-- User-Agent: string (nullable = true)
  |-- event_type: string (nullable = true)
  |-- timestamp: string (nullable = true)
 
->>> my_extracted_events.show(20, False)
-+------+-------------+----+-----------+---------------+-----------------------+
-|Accept|Cache-Control|Host|User-Agent |event_type     |timestamp              |
-+------+-------------+----+-----------+---------------+-----------------------+
-|*/*   |no-cache     |moe |curl/7.47.0|purchase_sword |2018-07-23 03:24:55.717|
-|*/*   |no-cache     |moe |curl/7.47.0|purchase_sword |2018-07-23 03:25:04.117|
-|*/*   |no-cache     |moe |curl/7.47.0|default        |2018-07-23 03:25:10.199|
-|*/*   |no-cache     |moe |curl/7.47.0|purchase_sword |2018-07-23 03:25:19.002|
-|*/*   |no-cache     |moe |curl/7.47.0|purchase_shield|2018-07-23 03:25:24.06 |
-|*/*   |no-cache     |moe |curl/7.47.0|upgrade_sword  |2018-07-23 03:25:37.492|
-|*/*   |no-cache     |moe |curl/7.47.0|purchase_shield|2018-07-23 03:25:46.406|
-|*/*   |no-cache     |moe |curl/7.47.0|upgrade_shield |2018-07-23 03:25:52.359|
-|*/*   |no-cache     |moe |curl/7.47.0|default        |2018-07-23 03:25:58.302|
-|*/*   |no-cache     |moe |curl/7.47.0|purchase_shield|2018-07-23 03:26:03.872|
-+------+-------------+----+-----------+---------------+-----------------------+
+>>> my_filtered_events.show(10, False)
++------+-----------------+---------------+--------------+-----------------------+
+|Accept|Host             |User-Agent     |event_type    |timestamp              |
++------+-----------------+---------------+--------------+-----------------------+
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.711|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.714|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.716|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.718|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.721|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.722|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.724|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.735|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.742|
+|*/*   |user1.comcast.com|ApacheBench/2.3|purchase_sword|2018-07-23 15:06:27.747|
++------+-----------------+---------------+--------------+-----------------------+
+only showing top 10 rows
 ```
 We see that our extracted events are properly transformed into several keys and saved in HDFS
 
@@ -339,7 +249,7 @@ We see that our extracted events are properly transformed into several keys and 
 After loading our saved files, I analyzed gamer activities in spark sql environment. I first registered the table extracted in json format into `gamer` table. I then counted the number of unique activities that gamers pursued and listed them. 
 
 ```
->>> my_extracted_events.registerTempTable('gamer')
+>>> my_filtered_events.registerTempTable('gamer')
 >>> spark.sql("SELECT event_type, COUNT(event_type) as event_count FROM gamer GROUP BY event_type ORDER BY event_count DESC").show()
 +---------------+-----------+                                                   
 |     event_type|event_count|
