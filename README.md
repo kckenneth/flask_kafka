@@ -149,6 +149,12 @@ There are two processes.
 ```
 docker-compose exec mids env FLASK_APP=/w205/assignment-12-kckenneth/game_api.py flask run --host 0.0.0.0
 ```
+Optional: If you want to keep the flask running in the background even after you terminate the session, use `nohup` at the front and `&` in the end. 
+```
+nohup docker-compose exec mids env FLASK_APP=/w205/assignment-12-kckenneth/game_api.py flask run --host 0.0.0.0 &
+```  
+Similar approach taken in <a href=https://github.com/kckenneth/GPFS_setup_mumbler>w251</a>. 
+
 ### 2) Gamer Activity in Gamer Window 
 
 ##### You need to ssh into Droplet from another CLI window. Once you're in the Droplet, go to /w205/assignment-12-kckenneth/ folder
