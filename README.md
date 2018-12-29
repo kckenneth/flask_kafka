@@ -71,8 +71,9 @@ docker run -it --rm -v /home/science/w205:/w205 midsw205/base:latest bash
   - mids  
   - spark
   - cloudera 
-4. create the following python scripts.  
-  - game_api.py (for flask)
+4. create the following yml file and python scripts. 
+  - <a href=https://github.com/kckenneth/EduFirm/blob/master/docker-compose.yml>docker-compose.yml</a> 
+  - <a href=https://github.com/kckenneth/flask_kafka/blob/master/python_script.md>game_api.py</a> (for flask)
   - filtered_writes.py (extract, transform, filter kafka messages and save in HDFS) 
   
 ```
